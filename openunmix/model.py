@@ -116,54 +116,86 @@ class OpenUnmix(nn.Module):
         """
 
         # permute so that batch is last for lstm
+        print('\n \n model forward \n \n')
         x = x.permute(3, 0, 1, 2)
+        print(f'forward 1 : permute {x.shape}')
         # get current spectrogram shape
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
+        print('get current spectrogram shape')
+        print(x.data.shape)
+        print('nb_frames, nb_samples, nb_channels, nb_bins')
 
         mix = x.detach().clone()
+        print(f'mix.shape {mix.shape}')
 
         # crop
         x = x[..., : self.nb_bins]
+        print(f'forward 2 : crop {x.shape}')
         # shift and scale input to mean=0 std=1 (across all bins)
         x = x + self.input_mean
         x = x * self.input_scale
+        print(f'forward 3 : scaler {x.shape}')
 
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
         x = self.fc1(x.reshape(-1, nb_channels * self.nb_bins))
+        print(f'forward 4 : fc1 {x.shape}')
+        print(f'nb_frames*nb_samples, nb_channels*nb_bins')
+
         # normalize every instance in a batch
         x = self.bn1(x)
         x = x.reshape(nb_frames, nb_samples, self.hidden_size)
+        print(f'forward 5: batch norm1 {x.shape}')
+        print('nb_frames*nb_samples, hidden_size')
+
         # squash range ot [-1, 1]
         x = torch.tanh(x)
+        print(f'forward 6: tanh {x.shape}')
 
         # apply 3-layers of stacked LSTM
         lstm_out = self.lstm(x)
+        print(f'forward 7: BLSTM {x.shape}')
 
-        # lstm skip connection
         x = torch.cat([x, lstm_out[0]], -1)
+        print(f'forward 8: Cat BLSTM out {x.shape}')
+
 
         # first dense stage + batch norm
         x = self.fc2(x.reshape(-1, x.shape[-1]))
+        print(f'forward 9 : first dense stage fc2 {x.shape}')
+
         x = self.bn2(x)
+        print(f'forward 10 : batch norm 2 {x.shape}')
 
         x = F.relu(x)
+        print(f'forward 11 : ReLu {x.shape}')
 
         # second dense stage + layer norm
         x = self.fc3(x)
+        print(f'forward 12 : fsecond dense stage fc3 {x.shape}')
+
         x = self.bn3(x)
+        print(f'forward 13 : batch norm 3 {x.shape}')
 
         # reshape back to original dim
         x = x.reshape(nb_frames, nb_samples, nb_channels, self.nb_output_bins)
+        print(f' forward 14 : reshape back to original dim')
+        print(x.shape)
+        print('nb_frames, nb_samples, nb_channels, self.nb_output_bins')
 
         # apply output scaling
         x *= self.output_scale
         x += self.output_mean
+        print(f'forward 15 : output scaling {x.shape}')
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x) * mix
+        print(f'forward 16 : ReLu {x.shape}')
+
         # permute back to (nb_samples, nb_channels, nb_bins, nb_frames)
+        print('permute back to (nb_samples, nb_channels, nb_bins, nb_frames')
         return x.permute(1, 2, 3, 0)
+
 
 
 class Separator(nn.Module):
