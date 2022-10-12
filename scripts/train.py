@@ -21,25 +21,42 @@ tqdm.monitor_interval = 0
 
 
 def train(args, unmix, encoder, device, train_sampler, optimizer):
+    print('def train')
     losses = utils.AverageMeter()
     unmix.train()
     pbar = tqdm.tqdm(train_sampler, disable=args.quiet)
     for x, y in pbar:
         pbar.set_description("Training batch")
+        # print(f'x : {x}')
+        print(f'x.shape {x.shape}')
+        # x = x.reshape(1,x.shape[0]) # modified code
+        print('x & y to device')
         x, y = x.to(device), y.to(device)
+        print('optimizer.zero_grad as backward pass is to be done')
         optimizer.zero_grad()
+        print('x to encoder')
         X = encoder(x)
+        print(f'shape of encoded x (X) = {X.shape}')
+        print('calling model ummix for computing estimate Y_hat')
         Y_hat = unmix(X)
+        print(f'shape of Y-hat  : {Y_hat.shape}')
+        print('encoding y (ie, ground truth')
         Y = encoder(y)
+        print(f'shape of encoded y {Y.shape}')
+        print('computing MSE loss')
         loss = torch.nn.functional.mse_loss(Y_hat, Y)
+        print('computing gradients via backward passs')
         loss.backward()
+        print('updating weights optimizer')
         optimizer.step()
         losses.update(loss.item(), Y.size(1))
+        print(f'losses list {losses}')
         pbar.set_postfix(loss="{:.3f}".format(losses.avg))
     return losses.avg
 
 
 def valid(args, unmix, encoder, device, valid_sampler):
+    print('def valid')
     losses = utils.AverageMeter()
     unmix.eval()
     with torch.no_grad():
@@ -54,10 +71,13 @@ def valid(args, unmix, encoder, device, valid_sampler):
 
 
 def get_statistics(args, encoder, dataset):
+    print('def get_statistics')
     encoder = copy.deepcopy(encoder).to("cpu")
     scaler = sklearn.preprocessing.StandardScaler()
 
     dataset_scaler = copy.deepcopy(dataset)
+    print(f'dataset {dataset}')
+    print(f'dataset_scaler {dataset_scaler}')
     if isinstance(dataset_scaler, data.SourceFolderDataset):
         dataset_scaler.random_chunks = False
     else:
@@ -72,10 +92,20 @@ def get_statistics(args, encoder, dataset):
     pbar = tqdm.tqdm(range(len(dataset_scaler)), disable=args.quiet)
     for ind in pbar:
         x, y = dataset_scaler[ind]
+        print(f'x.shape (train.get_statistics) : {x.shape}')
+        print(f'type(x) : {type(x)}')
+        print(f'y.shape (train.get_statistics) : {y.shape}')
+        print(f'type(y) : {type(y)}')
         pbar.set_description("Compute dataset statistics")
+        # x = utils.preprocess(x, rate=44100.0, model_rate=44100.0) # modified code
+        
         # downmix to mono channel
-        X = encoder(x[None, ...]).mean(1, keepdim=False).permute(0, 2, 1)
-
+        print('entering encoder....')
+        X = encoder(x[None, ...]).mean(1, keepdim=False).permute(0, 2, 1) # original statement 
+        # X = encoder(x[None, None, ...]).mean(1, keepdim=False).permute(0, 2, 1)  # modified for musdb_imfs
+        print(f'x.shape after encoder {x.shape}')
+        print('encoder run')
+        print(f'X.shape {X.shape}')
         scaler.partial_fit(np.squeeze(X))
 
     # set inital input scaler values
@@ -84,6 +114,7 @@ def get_statistics(args, encoder, dataset):
 
 
 def main():
+    print('def main')
     parser = argparse.ArgumentParser(description="Open Unmix Trainer")
 
     # which target do we want to train?
@@ -203,7 +234,8 @@ def main():
     )
 
     args, _ = parser.parse_known_args()
-
+    
+    print('def_main 1 use CUDA or not')
     torchaudio.set_audio_backend(args.audio_backend)
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     print("Using GPU:", use_cuda)
@@ -218,13 +250,17 @@ def main():
     random.seed(args.seed)
 
     device = torch.device("cuda" if use_cuda else "cpu")
-
+    
+    print('def_main2 data.load_datasets called')
     train_dataset, valid_dataset, args = data.load_datasets(parser, args)
 
     # create output dir if not exist
+    print('def_main3 create output dir')
     target_path = Path(args.output)
+    print(f'target_path {target_path}')
     target_path.mkdir(parents=True, exist_ok=True)
-
+    
+    print('def_main4 train_sampler')
     train_sampler = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, **dataloader_kwargs
     )
@@ -233,6 +269,7 @@ def main():
     stft, _ = transforms.make_filterbanks(
         n_fft=args.nfft, n_hop=args.nhop, sample_rate=train_dataset.sample_rate
     )
+    print('def_main5 encoder initialized')
     encoder = torch.nn.Sequential(stft, model.ComplexNorm(mono=args.nb_channels == 1)).to(device)
 
     separator_conf = {
@@ -249,6 +286,7 @@ def main():
         scaler_mean = None
         scaler_std = None
     else:
+        print('def_main6 calling get_statistics')
         scaler_mean, scaler_std = get_statistics(args, encoder, train_dataset)
 
     max_bin = utils.bandwidth_to_max_bin(train_dataset.sample_rate, args.nfft, args.bandwidth)
@@ -269,7 +307,9 @@ def main():
             hidden_size=args.hidden_size,
             max_bin=max_bin,
         ).to(device)
+        print('def_main7 unmix = model.OpenUnmix')
 
+    print('def_main8 calling optimizer')
     optimizer = torch.optim.Adam(unmix.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
