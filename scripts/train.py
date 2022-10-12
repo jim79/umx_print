@@ -299,6 +299,7 @@ def main():
         )[args.target]
         unmix = unmix.to(device)
     else:
+        print('initialize model.OpenUnmix')
         unmix = model.OpenUnmix(
             input_mean=scaler_mean,
             input_scale=scaler_std,
