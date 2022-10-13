@@ -242,8 +242,11 @@ def main():
     dataloader_kwargs = {"num_workers": args.nb_workers, "pin_memory": True} if use_cuda else {}
 
     repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    print(f'repo_dir {repo_dir}')
     repo = Repo(repo_dir)
+    print(f'repo {repo}')
     commit = repo.head.commit.hexsha[:7]
+    print(f'commit {commit}')
 
     # use jpg or npy
     torch.manual_seed(args.seed)

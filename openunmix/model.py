@@ -58,6 +58,8 @@ class OpenUnmix(nn.Module):
             lstm_hidden_size = hidden_size
         else:
             lstm_hidden_size = hidden_size // 2
+        
+        print(f'lstm_hidden_size {lstm_hidden_size}')
 
         self.lstm = LSTM(
             input_size=hidden_size,
@@ -67,6 +69,8 @@ class OpenUnmix(nn.Module):
             batch_first=False,
             dropout=0.4 if nb_layers > 1 else 0,
         )
+
+        print(f'fc2_hiddensize {fc2_hiddensize}')
 
         fc2_hiddensize = hidden_size * 2
         self.fc2 = Linear(in_features=fc2_hiddensize, out_features=hidden_size, bias=False)
