@@ -13,7 +13,7 @@ import copy
 import torchaudio
 
 from openunmix import data
-from openunmix import model
+# from openunmix import model
 from openunmix import utils
 from openunmix import transforms
 
@@ -312,6 +312,7 @@ def main():
             max_bin=max_bin,
         ).to(device)
         print('def_main7 unmix = model.OpenUnmix')
+        print(f'device {device}')
 
     print('def_main8 calling optimizer')
     optimizer = torch.optim.Adam(unmix.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -327,6 +328,7 @@ def main():
 
     # if a checkpoint is specified: resume training
     if args.checkpoint:
+        print('checkpoint loading......')
         model_path = Path(args.checkpoint).expanduser()
         with open(Path(model_path, args.target + ".json"), "r") as stream:
             results = json.load(stream)
@@ -350,6 +352,7 @@ def main():
         es.num_bad_epochs = results["num_bad_epochs"]
     # else start optimizer from scratch
     else:
+        print('else start optimizer from scratch')
         t = tqdm.trange(1, args.epochs + 1, disable=args.quiet)
         train_losses = []
         valid_losses = []
@@ -357,6 +360,7 @@ def main():
         best_epoch = 0
 
     for epoch in t:
+        print('training epoch starting ........')
         t.set_description("Training epoch")
         end = time.time()
         train_loss = train(args, unmix, encoder, device, train_sampler, optimizer)
@@ -386,6 +390,7 @@ def main():
         )
 
         # save params
+        print('save params')
         params = {
             "epochs_trained": epoch,
             "args": vars(args),
