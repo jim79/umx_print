@@ -59,6 +59,8 @@ class OpenUnmix(nn.Module):
         else:
             lstm_hidden_size = hidden_size // 2
         
+        print('super(OpenUnmix)')
+        
         print(f'lstm_hidden_size {lstm_hidden_size}')
 
         self.lstm = LSTM(
@@ -295,6 +297,8 @@ class Separator(nn.Module):
         mix_stft = self.stft(audio)
         X = self.complexnorm(mix_stft)
 
+        print('Performing the separation on audio input')
+
         # initializing spectrograms variable
         spectrograms = torch.zeros(X.shape + (nb_sources,), dtype=audio.dtype, device=X.device)
 
@@ -351,6 +355,8 @@ class Separator(nn.Module):
 
         # inverse STFT
         estimates = self.istft(targets_stft, length=audio.shape[2])
+
+        print('Performing the separation on audio input')
 
         return estimates
 
