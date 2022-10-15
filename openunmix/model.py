@@ -60,7 +60,7 @@ class OpenUnmix(nn.Module):
             lstm_hidden_size = hidden_size // 2
         
         print('super(OpenUnmix)')
-        
+
         print(f'lstm_hidden_size {lstm_hidden_size}')
 
         self.lstm = LSTM(
@@ -104,6 +104,7 @@ class OpenUnmix(nn.Module):
         self.output_mean = Parameter(torch.ones(self.nb_output_bins).float())
 
     def freeze(self):
+        print('freeze 1')
         # set all parameters as not requiring gradient, more RAM-efficient
         # at test time
         for p in self.parameters():
@@ -120,6 +121,7 @@ class OpenUnmix(nn.Module):
             Tensor: filtered spectrogram of shape
                 `(nb_samples, nb_channels, nb_bins, nb_frames)`
         """
+        print('forward 1..........')
 
         # permute so that batch is last for lstm
         print('\n \n model forward \n \n')
@@ -231,6 +233,7 @@ class Separator(nn.Module):
             asteroids stft can be exported to onnx, which makes is practical
             for deployment.
     """
+    print('separator')
 
     def __init__(
         self,
@@ -271,6 +274,7 @@ class Separator(nn.Module):
         self.register_buffer("sample_rate", torch.as_tensor(sample_rate))
 
     def freeze(self):
+        print('freeze 2')
         # set all parameters as not requiring gradient, more RAM-efficient
         # at test time
         for p in self.parameters():
@@ -288,6 +292,7 @@ class Separator(nn.Module):
             Tensor: stacked tensor of separated waveforms
                 shape `(nb_samples, nb_targets, nb_channels, nb_timesteps)`
         """
+        print('freeze 2')
 
         nb_sources = self.nb_targets
         nb_samples = audio.shape[0]
@@ -371,6 +376,7 @@ class Separator(nn.Module):
         Returns:
             (dict of str: Tensor):
         """
+        print('dict ......')
         estimates_dict = {}
         for k, target in enumerate(self.target_models):
             estimates_dict[target] = estimates[:, k, ...]
